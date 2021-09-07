@@ -194,6 +194,7 @@ def run(weights='yolov5s.pt',  # model.pt path(s)
 
                 # Write results
                 for *xyxy, conf, cls in reversed(det):
+                    x1, y1, x2, y2=int(xyxy[0]), int (xyxy[1]),int(xyxy[2]), int(xyxy[3]);
                     if save_txt:  # Write to file
                         xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
                         line = (cls, *xywh, conf) if save_conf else (cls, *xywh)  # label format
@@ -202,8 +203,13 @@ def run(weights='yolov5s.pt',  # model.pt path(s)
 
                     if save_img or save_crop or view_img:  # Add bbox to image
                         c = int(cls)  # integer class
-                        label = None if hide_labels else (names[c] if hide_conf else f'{names[c]} {conf:.2f}')
-                        annotator.box_label(xyxy, label, color=colors(c, True))
+                        #label = None if hide_labels else (names[c] if hide_conf else f'{names[c]} {conf:.2f}')
+                        #annotator.box_label(xyxy, label, color=colors(c, True))
+                        src=im0[y1:y2, x1:x2]
+                        dst=im0.copy()
+                        small=cv2.resize(src,None,fx=0.07, fy=0.07)
+                        dst[y1:y2, x1:x2]=cv2.resize(small, src.shape[:2][::-1],interpolation=cv2.INTER_NEAREST)
+                        im0=dst
                         if save_crop:
                             save_one_box(xyxy, imc, file=save_dir / 'crops' / names[c] / f'{p.stem}.jpg', BGR=True)
 
@@ -213,13 +219,13 @@ def run(weights='yolov5s.pt',  # model.pt path(s)
             # Stream results
             im0 = annotator.result()
             if view_img:
-                cv2.imshow(str(p), im0)
+                cv2.imshow(str(p), dst)
                 cv2.waitKey(1)  # 1 millisecond
 
             # Save results (image with detections)
             if save_img:
                 if dataset.mode == 'image':
-                    cv2.imwrite(save_path, im0)
+                    cv2.imwrite(save_path, dst)
                 else:  # 'video' or 'stream'
                     if vid_path[i] != save_path:  # new video
                         vid_path[i] = save_path
